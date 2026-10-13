@@ -28,11 +28,11 @@ public class Budget {
     private BigDecimal monthlyLimit;
 
     @NotNull
-    @Column(nullable = false)
+    @Column(name = "\"month\"", nullable = false)
     private Integer month;
 
     @NotNull
-    @Column(nullable = false)
+    @Column(name = "\"year\"", nullable = false)
     private Integer year;
 
     @Column(precision = 10, scale = 2)

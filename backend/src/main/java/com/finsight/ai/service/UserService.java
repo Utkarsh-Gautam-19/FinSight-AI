@@ -78,8 +78,22 @@ public class UserService {
 
     public User getUserFromToken(String authToken) {
         String firebaseUid = firebaseAuthService.getUserIdFromToken(authToken);
+        String email = firebaseAuthService.getEmailFromToken(authToken);
+        
         return userRepository.findByFirebaseUid(firebaseUid)
-            .orElseThrow(() -> new RuntimeException("User not found"));
+            .orElseGet(() -> {
+                // Check if user exists by email
+                Optional<User> byEmail = userRepository.findByEmail(email);
+                if (byEmail.isPresent()) {
+                    User u = byEmail.get();
+                    u.setFirebaseUid(firebaseUid);
+                    return userRepository.save(u);
+                }
+                // Auto-create user record
+                User newUser = new User(firebaseUid, email != null ? email : (firebaseUid + "@example.com"), "User", "Account");
+                newUser.setCurrency("ZAR");
+                return userRepository.save(newUser);
+            });
     }
 
     public void deleteUser(String firebaseUid) {

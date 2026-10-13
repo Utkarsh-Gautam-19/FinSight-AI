@@ -28,37 +28,58 @@ public class DataSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        // Commented out sample data seeding to allow real user registration
-        // if (userRepository.count() == 0) {
-        //     seedData();
-        // }
-        System.out.println("DataSeeder: Skipping sample data - allowing real user registration");
+        System.out.println("DataSeeder: Initializing sample test data...");
+        User demoUser = userRepository.findByFirebaseUid("demo-firebase-uid")
+            .orElseGet(() -> {
+                User u = new User("demo-firebase-uid", "demo@finsight.ai", "John", "Doe");
+                u.setCurrency("ZAR");
+                u.setDarkMode(false);
+                return userRepository.save(u);
+            });
+
+        User devUser = userRepository.findByFirebaseUid("dev-user-default")
+            .orElseGet(() -> {
+                User u = new User("dev-user-default", "dev@finsight.ai", "John", "Doe");
+                u.setCurrency("ZAR");
+                u.setDarkMode(false);
+                return userRepository.save(u);
+            });
+
+        seedDataForUser(demoUser);
+        seedDataForUser(devUser);
+
+        // Seed for any other user in DB if they have 0 expenses
+        for (User u : userRepository.findAll()) {
+            if (expenseRepository.findByUserOrderByDateDesc(u).isEmpty()) {
+                seedDataForUser(u);
+            }
+        }
     }
 
-    private void seedData() {
-        // Create demo user
-        User demoUser = new User("demo-firebase-uid", "demo@finsight.ai", "John", "Doe");
-        demoUser.setCurrency("ZAR");
-        demoUser.setDarkMode(false);
-        demoUser = userRepository.save(demoUser);
+    public void seedDataForUser(User user) {
+        if (!expenseRepository.findByUserOrderByDateDesc(user).isEmpty()) {
+            return;
+        }
 
-        // Create sample expenses
+        System.out.println("Seeding sample expenses and budgets for user: " + user.getEmail());
+
+        // Create sample expenses for current month
         List<Expense> expenses = Arrays.asList(
-            new Expense("Grocery shopping", new BigDecimal("85.50"), ExpenseCategory.GROCERIES, LocalDate.now().minusDays(1), demoUser),
-            new Expense("Gas station", new BigDecimal("45.20"), ExpenseCategory.TRANSPORTATION, LocalDate.now().minusDays(2), demoUser),
-            new Expense("Coffee shop", new BigDecimal("12.75"), ExpenseCategory.FOOD_DINING, LocalDate.now().minusDays(3), demoUser),
-            new Expense("Netflix subscription", new BigDecimal("15.99"), ExpenseCategory.ENTERTAINMENT, LocalDate.now().minusDays(4), demoUser),
-            new Expense("Electricity bill", new BigDecimal("120.00"), ExpenseCategory.BILLS_UTILITIES, LocalDate.now().minusDays(5), demoUser),
-            new Expense("Lunch at restaurant", new BigDecimal("28.50"), ExpenseCategory.FOOD_DINING, LocalDate.now().minusDays(6), demoUser),
-            new Expense("Book purchase", new BigDecimal("19.99"), ExpenseCategory.EDUCATION, LocalDate.now().minusDays(7), demoUser),
-            new Expense("Gym membership", new BigDecimal("50.00"), ExpenseCategory.HEALTHCARE, LocalDate.now().minusDays(8), demoUser),
-            new Expense("Online shopping", new BigDecimal("75.30"), ExpenseCategory.SHOPPING, LocalDate.now().minusDays(9), demoUser),
-            new Expense("Uber ride", new BigDecimal("18.45"), ExpenseCategory.TRANSPORTATION, LocalDate.now().minusDays(10), demoUser),
-            new Expense("Movie tickets", new BigDecimal("24.00"), ExpenseCategory.ENTERTAINMENT, LocalDate.now().minusDays(11), demoUser),
-            new Expense("Haircut", new BigDecimal("35.00"), ExpenseCategory.PERSONAL_CARE, LocalDate.now().minusDays(12), demoUser),
-            new Expense("Phone bill", new BigDecimal("65.00"), ExpenseCategory.BILLS_UTILITIES, LocalDate.now().minusDays(13), demoUser),
-            new Expense("Grocery shopping", new BigDecimal("92.15"), ExpenseCategory.GROCERIES, LocalDate.now().minusDays(14), demoUser),
-            new Expense("Gift for friend", new BigDecimal("40.00"), ExpenseCategory.GIFTS_DONATIONS, LocalDate.now().minusDays(15), demoUser)
+            new Expense("Grocery shopping", new BigDecimal("485.50"), ExpenseCategory.GROCERIES, LocalDate.now().minusDays(1), user),
+            new Expense("Gas station", new BigDecimal("245.20"), ExpenseCategory.TRANSPORTATION, LocalDate.now().minusDays(2), user),
+            new Expense("Coffee shop", new BigDecimal("62.75"), ExpenseCategory.FOOD_DINING, LocalDate.now().minusDays(3), user),
+            new Expense("Netflix subscription", new BigDecimal("159.99"), ExpenseCategory.ENTERTAINMENT, LocalDate.now().minusDays(4), user),
+            new Expense("Electricity bill", new BigDecimal("820.00"), ExpenseCategory.BILLS_UTILITIES, LocalDate.now().minusDays(5), user),
+            new Expense("Lunch at restaurant", new BigDecimal("228.50"), ExpenseCategory.FOOD_DINING, LocalDate.now().minusDays(6), user),
+            new Expense("Book purchase", new BigDecimal("119.99"), ExpenseCategory.EDUCATION, LocalDate.now().minusDays(7), user),
+            new Expense("Gym membership", new BigDecimal("350.00"), ExpenseCategory.HEALTHCARE, LocalDate.now().minusDays(8), user),
+            new Expense("Online shopping", new BigDecimal("475.30"), ExpenseCategory.SHOPPING, LocalDate.now().minusDays(9), user),
+            new Expense("Uber ride", new BigDecimal("118.45"), ExpenseCategory.TRANSPORTATION, LocalDate.now().minusDays(10), user),
+            new Expense("Movie tickets", new BigDecimal("184.00"), ExpenseCategory.ENTERTAINMENT, LocalDate.now().minusDays(11), user),
+            new Expense("Haircut", new BigDecimal("235.00"), ExpenseCategory.PERSONAL_CARE, LocalDate.now().minusDays(12), user),
+            new Expense("Phone bill", new BigDecimal("465.00"), ExpenseCategory.BILLS_UTILITIES, LocalDate.now().minusDays(13), user),
+            new Expense("Grocery shopping", new BigDecimal("592.15"), ExpenseCategory.GROCERIES, LocalDate.now().minusDays(14), user),
+            new Expense("Gift for friend", new BigDecimal("240.00"), ExpenseCategory.GIFTS_DONATIONS, LocalDate.now().minusDays(15), user)
         );
 
         expenseRepository.saveAll(expenses);
@@ -68,32 +89,41 @@ public class DataSeeder implements CommandLineRunner {
         int currentYear = LocalDate.now().getYear();
 
         List<Budget> budgets = Arrays.asList(
-            new Budget(ExpenseCategory.GROCERIES, new BigDecimal("400.00"), currentMonth, currentYear, demoUser),
-            new Budget(ExpenseCategory.FOOD_DINING, new BigDecimal("300.00"), currentMonth, currentYear, demoUser),
-            new Budget(ExpenseCategory.TRANSPORTATION, new BigDecimal("200.00"), currentMonth, currentYear, demoUser),
-            new Budget(ExpenseCategory.ENTERTAINMENT, new BigDecimal("150.00"), currentMonth, currentYear, demoUser),
-            new Budget(ExpenseCategory.BILLS_UTILITIES, new BigDecimal("250.00"), currentMonth, currentYear, demoUser),
-            new Budget(ExpenseCategory.SHOPPING, new BigDecimal("200.00"), currentMonth, currentYear, demoUser),
-            new Budget(ExpenseCategory.HEALTHCARE, new BigDecimal("100.00"), currentMonth, currentYear, demoUser),
-            new Budget(ExpenseCategory.PERSONAL_CARE, new BigDecimal("80.00"), currentMonth, currentYear, demoUser)
+            new Budget(ExpenseCategory.GROCERIES, new BigDecimal("2000.00"), currentMonth, currentYear, user),
+            new Budget(ExpenseCategory.FOOD_DINING, new BigDecimal("1500.00"), currentMonth, currentYear, user),
+            new Budget(ExpenseCategory.TRANSPORTATION, new BigDecimal("1000.00"), currentMonth, currentYear, user),
+            new Budget(ExpenseCategory.ENTERTAINMENT, new BigDecimal("800.00"), currentMonth, currentYear, user),
+            new Budget(ExpenseCategory.BILLS_UTILITIES, new BigDecimal("2500.00"), currentMonth, currentYear, user),
+            new Budget(ExpenseCategory.SHOPPING, new BigDecimal("1200.00"), currentMonth, currentYear, user),
+            new Budget(ExpenseCategory.HEALTHCARE, new BigDecimal("800.00"), currentMonth, currentYear, user),
+            new Budget(ExpenseCategory.PERSONAL_CARE, new BigDecimal("600.00"), currentMonth, currentYear, user)
         );
+
+        // Update currentSpent for each budget based on expenses
+        for (Budget b : budgets) {
+            BigDecimal totalSpent = expenses.stream()
+                .filter(e -> e.getCategory() == b.getCategory())
+                .map(Expense::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+            b.setCurrentSpent(totalSpent);
+        }
 
         budgetRepository.saveAll(budgets);
 
         // Create sample recurring expenses
         List<RecurringExpense> recurringExpenses = Arrays.asList(
-            new RecurringExpense("Netflix Subscription", new BigDecimal("15.99"), ExpenseCategory.ENTERTAINMENT, 
-                               RecurrenceFrequency.MONTHLY, LocalDate.now().withDayOfMonth(1), demoUser),
-            new RecurringExpense("Gym Membership", new BigDecimal("50.00"), ExpenseCategory.HEALTHCARE, 
-                               RecurrenceFrequency.MONTHLY, LocalDate.now().withDayOfMonth(15), demoUser),
-            new RecurringExpense("Phone Bill", new BigDecimal("65.00"), ExpenseCategory.BILLS_UTILITIES, 
-                               RecurrenceFrequency.MONTHLY, LocalDate.now().withDayOfMonth(5), demoUser),
-            new RecurringExpense("Coffee Subscription", new BigDecimal("24.99"), ExpenseCategory.FOOD_DINING, 
-                               RecurrenceFrequency.MONTHLY, LocalDate.now().withDayOfMonth(10), demoUser)
+            new RecurringExpense("Netflix Subscription", new BigDecimal("159.99"), ExpenseCategory.ENTERTAINMENT, 
+                               RecurrenceFrequency.MONTHLY, LocalDate.now().withDayOfMonth(1), user),
+            new RecurringExpense("Gym Membership", new BigDecimal("350.00"), ExpenseCategory.HEALTHCARE, 
+                               RecurrenceFrequency.MONTHLY, LocalDate.now().withDayOfMonth(15), user),
+            new RecurringExpense("Phone Bill", new BigDecimal("465.00"), ExpenseCategory.BILLS_UTILITIES, 
+                               RecurrenceFrequency.MONTHLY, LocalDate.now().withDayOfMonth(5), user),
+            new RecurringExpense("Coffee Subscription", new BigDecimal("124.99"), ExpenseCategory.FOOD_DINING, 
+                               RecurrenceFrequency.MONTHLY, LocalDate.now().withDayOfMonth(10), user)
         );
 
         recurringExpenseRepository.saveAll(recurringExpenses);
 
-        System.out.println("Sample data seeded successfully!");
+        System.out.println("Sample data seeded successfully for user: " + user.getEmail());
     }
 }

@@ -34,7 +34,7 @@ public class User {
     @Column(name = "last_name", nullable = false)
     private String lastName;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(length = 1000000)
     private String profilePictureUrl;
 
     @Column(nullable = false)
